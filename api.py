@@ -1,3 +1,4 @@
+# api.py - UPDATED VERSION WITH TEST ENDPOINT
 import os
 import json
 import pandas as pd
@@ -6,8 +7,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import logging
-from model2 import TwoStageDiseasePredictor
 import tempfile
+from model2 import TwoStageDiseasePredictor, simulate_gwas_data, simulate_individual_genome
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -66,13 +67,25 @@ def validate_genome_data(df):
     if missing_cols:
         return False, f"Missing required columns: {missing_cols}"
 
-    # Check for NaN values in critical columns
-    critical_cols = ['SNPS', 'EFFECT_MIDPOINT', 'P_VALUE']
-    for col in critical_cols:
-        if df[col].isnull().any():
-            return False, f"Missing values in column: {col}"
-
     return True, "Data validation successful"
+
+
+@app.route('/')
+def home():
+    """Home page with API documentation"""
+    return jsonify({
+        'message': 'Disease Prediction API',
+        'version': '1.0',
+        'endpoints': {
+            'GET /api/health': 'Health check',
+            'GET /api/model/info': 'Model information',
+            'POST /api/predict/upload': 'Predict from file upload (CSV/TSV)',
+            'POST /api/predict/json': 'Predict from JSON data',
+            'GET /api/test': 'Test prediction with synthetic data',
+            'GET /api/sample': 'Sample data format'
+        },
+        'target_disease': model.target_disease if model else 'Unknown'
+    })
 
 
 @app.route('/api/health', methods=['GET'])
@@ -83,7 +96,8 @@ def health_check():
         'status': 'healthy',
         'model_loaded': model is not None,
         'model_status': model_status,
-        'target_disease': model.target_disease if model else None
+        'target_disease': model.target_disease if model else None,
+        'timestamp': pd.Timestamp.now().isoformat()
     })
 
 
@@ -98,6 +112,82 @@ def model_info():
         'person_classifier_trained': model.person_classifier_trained,
         'feature_count': len(model.feature_columns) if model.feature_columns else 0,
         'model_type': 'Two-Stage Disease Predictor'
+    })
+
+
+@app.route('/api/test', methods=['GET'])
+def test_prediction():
+    """Test endpoint that creates and predicts on synthetic data"""
+    if not model:
+        return jsonify({'error': 'Model not loaded'}), 400
+
+    try:
+        logger.info("Creating synthetic test data...")
+
+        # Create synthetic test data
+        gwas_df = simulate_gwas_data(n_snps=2000)
+        test_person = simulate_individual_genome(gwas_df, snps_per_person=150)
+
+        logger.info(f"Test data created: {test_person.shape}")
+
+        # Make prediction
+        result = model.predict(test_person)
+
+        response = {
+            'status': 'success',
+            'test_type': 'synthetic_data',
+            'data_info': {
+                'snps_processed': len(test_person),
+                'data_source': 'simulated'
+            },
+            'prediction': {
+                'risk_score': float(result['risk_score']),
+                'risk_category': result['risk_category'],
+                'num_relevant_snps': result['num_relevant_snps'],
+                'target_disease': model.target_disease
+            },
+            'explanation': result['explanation'],
+            'note': 'This is a test prediction using synthetic data. Use /api/predict/upload for real data.'
+        }
+
+        return jsonify(response)
+
+    except Exception as e:
+        logger.error(f"Test prediction error: {str(e)}")
+        return jsonify({'error': f'Test failed: {str(e)}'}), 500
+
+
+@app.route('/api/sample', methods=['GET'])
+def sample_data():
+    """Get sample data format for testing"""
+    sample_snp = {
+        "REGION": "chr1.12345",
+        "CHR_ID": "1",
+        "MAPPED_GENE": "GENE_ABC",
+        "SNPS": "rs12345",
+        "CONTEXT": "intron",
+        "INTERGENIC": "N",
+        "RISK_ALLELE_FREQUENCY": 0.25,
+        "P_VALUE": 0.0001,
+        "P_VALUE_MLOG": 4.0,
+        "CI_95": "[0.95-1.05]",
+        "EFFECT_LOWER": 0.9,
+        "EFFECT_UPPER": 1.1,
+        "EFFECT_MIDPOINT": 1.0,
+        "EFFECT_DIRECTION_ENCODED": 1,
+        "IS_INTERGENIC": 0,
+        "HAS_KNOWN_GENE": 1,
+        "IS_SIGNIFICANT_0_05": 1,
+        "IS_SIGNIFICANT_0_01": 1,
+        "IS_SIGNIFICANT_5e_8": 0,
+        "P_VALUE_CATEGORY": "high_sig"
+    }
+
+    return jsonify({
+        "sample_format": "JSON array of SNP objects",
+        "required_fields": list(sample_snp.keys()),
+        "example_single_snp": sample_snp,
+        "note": "Upload multiple SNPs (typically 150-300 per individual for meaningful prediction)"
     })
 
 
@@ -231,146 +321,11 @@ def predict_from_json():
         return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
 
 
-@app.route('/api/batch/predict', methods=['POST'])
-def batch_predict():
-    """
-    Endpoint for batch predictions (multiple individuals)
-    Accepts: ZIP file containing multiple CSV files or a multi-sheet Excel file
-    """
-    if not model:
-        return jsonify({'error': 'Model not loaded'}), 400
-
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-
-    file = request.files['file']
-
-    try:
-        results = []
-
-        if file.filename.endswith('.zip'):
-            import zipfile
-            from io import BytesIO
-
-            # Process ZIP file
-            with zipfile.ZipFile(BytesIO(file.read())) as z:
-                for filename in z.namelist():
-                    if filename.endswith('.csv'):
-                        with z.open(filename) as f:
-                            df = pd.read_csv(f)
-
-                            # Validate and predict
-                            is_valid, _ = validate_genome_data(df)
-                            if is_valid:
-                                result = model.predict(df)
-                                results.append({
-                                    'patient_id': filename.replace('.csv', ''),
-                                    'risk_score': float(result['risk_score']),
-                                    'risk_category': result['risk_category'],
-                                    'num_relevant_snps': result['num_relevant_snps']
-                                })
-
-        elif file.filename.endswith(('.xlsx', '.xls')):
-            # Process Excel file
-            df_dict = pd.read_excel(file, sheet_name=None)
-
-            for sheet_name, df in df_dict.items():
-                is_valid, _ = validate_genome_data(df)
-                if is_valid:
-                    result = model.predict(df)
-                    results.append({
-                        'patient_id': sheet_name,
-                        'risk_score': float(result['risk_score']),
-                        'risk_category': result['risk_category'],
-                        'num_relevant_snps': result['num_relevant_snps']
-                    })
-
-        else:
-            return jsonify({'error': 'Unsupported file format for batch processing'}), 400
-
-        return jsonify({
-            'status': 'success',
-            'predictions': results,
-            'total_patients': len(results),
-            'target_disease': model.target_disease
-        })
-
-    except Exception as e:
-        logger.error(f"Batch prediction error: {str(e)}")
-        return jsonify({'error': f'Batch prediction failed: {str(e)}'}), 500
-
-
-@app.route('/api/features/importance', methods=['GET'])
-def feature_importance():
-    """Get feature importance from the model"""
-    if not model or not model.snp_classifier:
-        return jsonify({'error': 'Model not loaded or trained'}), 400
-
-    try:
-        # Get feature importance from SNP classifier
-        if hasattr(model.snp_classifier, 'feature_importances_'):
-            importance_data = []
-            for i, (feature, importance) in enumerate(
-                    zip(model.feature_columns, model.snp_classifier.feature_importances_)
-            ):
-                importance_data.append({
-                    'feature': feature,
-                    'importance': float(importance),
-                    'rank': i + 1
-                })
-
-            # Sort by importance
-            importance_data.sort(key=lambda x: x['importance'], reverse=True)
-
-            return jsonify({
-                'status': 'success',
-                'feature_importance': importance_data[:20]  # Top 20 features
-            })
-        else:
-            return jsonify({'error': 'Feature importance not available'}), 400
-
-    except Exception as e:
-        logger.error(f"Feature importance error: {str(e)}")
-        return jsonify({'error': f'Failed to get feature importance: {str(e)}'}), 500
-
-
-@app.route('/api/sample/data', methods=['GET'])
-def sample_data():
-    """Get sample data format for testing"""
-    sample_snp = {
-        "REGION": "chr1.12345",
-        "CHR_ID": "1",
-        "MAPPED_GENE": "GENE_ABC",
-        "SNPS": "rs12345",
-        "CONTEXT": "intron",
-        "INTERGENIC": "N",
-        "RISK_ALLELE_FREQUENCY": 0.25,
-        "P_VALUE": 0.0001,
-        "P_VALUE_MLOG": 4.0,
-        "CI_95": "[0.95-1.05]",
-        "EFFECT_LOWER": 0.9,
-        "EFFECT_UPPER": 1.1,
-        "EFFECT_MIDPOINT": 1.0,
-        "EFFECT_DIRECTION_ENCODED": 1,
-        "IS_INTERGENIC": 0,
-        "HAS_KNOWN_GENE": 1,
-        "IS_SIGNIFICANT_0_05": 1,
-        "IS_SIGNIFICANT_0_01": 1,
-        "IS_SIGNIFICANT_5e_8": 0,
-        "P_VALUE_CATEGORY": "high_sig"
-    }
-
-    return jsonify({
-        "sample_format": "JSON array of SNP objects",
-        "required_fields": list(sample_snp.keys()),
-        "example_single_snp": sample_snp,
-        "note": "Upload multiple SNPs (typically 200-500 per individual)"
-    })
-
-
 @app.errorhandler(404)
 def not_found(error):
-    return jsonify({'error': 'Endpoint not found'}), 404
+    return jsonify({'error': 'Endpoint not found',
+                    'available_endpoints': ['/api/health', '/api/model/info', '/api/test',
+                                            '/api/sample', '/api/predict/upload', '/api/predict/json']}), 404
 
 
 @app.errorhandler(500)
@@ -381,7 +336,22 @@ def internal_error(error):
 if __name__ == '__main__':
     # Load model on startup
     if load_model():
-        logger.info("Starting API server...")
+        logger.info("=" * 60)
+        logger.info("DISEASE PREDICTION API")
+        logger.info("=" * 60)
+        logger.info(f"Target disease: {model.target_disease}")
+        logger.info(f"Model type: {'Two-stage' if model.person_classifier_trained else 'SNP-only'}")
+        logger.info(f"API running on: http://localhost:5000")
+        logger.info("\nAvailable endpoints:")
+        logger.info("  GET  /              - API documentation")
+        logger.info("  GET  /api/health    - Health check")
+        logger.info("  GET  /api/model/info - Model information")
+        logger.info("  GET  /api/test      - Test prediction with synthetic data")
+        logger.info("  GET  /api/sample    - Sample data format")
+        logger.info("  POST /api/predict/upload - Predict from file upload")
+        logger.info("  POST /api/predict/json   - Predict from JSON data")
+        logger.info("=" * 60)
+
         app.run(host='0.0.0.0', port=5000, debug=True)
     else:
         logger.error("Failed to load model. API cannot start.")
