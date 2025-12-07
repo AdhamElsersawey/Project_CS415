@@ -54,3 +54,5 @@ pytest_cache/
 ### Other ###
 *.tar.gz
 *.zip
+*.csv
+*.tsv
