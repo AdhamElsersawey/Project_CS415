@@ -1,15 +1,11 @@
 import { useEffect, useState } from "react"
-import { Loader2, ChevronDown, ChevronUp, ArrowRight, CheckCircle } from "lucide-react"
-import { useNavigate } from "react-router-dom"
+import { Loader2, ChevronDown, ChevronUp, ArrowRight , ArrowLeft, CheckCircle, Activity } from "lucide-react"
+import { useNavigate , Link } from "react-router-dom"
+import { ThemeToggle } from "../components/ThemeToggle"
 
 type Disease = {
-  id: string
-  name: string
-  confidence: number
-  mutations: string[]
-  pathogenicity: "High" | "Medium" | "Low"
-  description: string
-  references: string[]
+  id: string; name: string; confidence: number; mutations: string[];
+  pathogenicity: "High" | "Medium" | "Low"; description: string; references: string[]
 }
 
 export default function ResultsContent() {
@@ -19,199 +15,131 @@ export default function ResultsContent() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    setResults([]); // تصفير النتائج القديمة
-    
+    setResults([]); 
     try {
       const stored = sessionStorage.getItem('predictionResult')
-      
       if (stored) {
         const parsed = JSON.parse(stored)
         const preds = parsed.predictions || {}
-
         const resultsArr: Disease[] = Object.entries(preds).map(([disease, info]: [string, any]) => {
-          // حساب النسبة
-          let prob = 0;
-          if (info?.probability) prob = Number(info.probability);
-          else if (info?.percentage) prob = Number(String(info.percentage).replace('%', '')) / 100;
-
+          let prob = info?.probability ? Number(info.probability) : (info?.percentage ? Number(String(info.percentage).replace('%', '')) / 100 : 0);
           const percentage = prob * 100
           
-          // تحديد مستوى الخطورة
           let risk = info?.risk_level;
-          if (!risk) {
-             if (prob > 0.7) risk = 'High';
-             else if (prob > 0.5) risk = 'Medium';
-             else risk = 'Low'; // وهذا ما سنقوم بفلترته
-          }
+          if (!risk) { risk = prob > 0.7 ? 'High' : prob > 0.5 ? 'Medium' : 'Low' }
 
           return {
-            id: disease,
-            name: disease,
-            confidence: percentage,
-            mutations: info?.mutations || [],
-            pathogenicity: risk as "High" | "Medium" | "Low",
+            id: disease, name: disease, confidence: percentage,
+            mutations: info?.mutations || [], pathogenicity: risk,
             description: info?.description || `Model probability: ${(prob * 100).toFixed(2)}%`,
             references: info?.references || []
           }
         });
-
-        // =====================================================================
-        // 🔥 التعديل الأهم: محاكاة منطق التيرمينال
-        // الموديل بيوزع الـ 100% على الـ 5 أمراض لو المدخلات غلط (كل واحد بياخد 20%)
-        // عشان كده بنقوله: أي حاجة أقل من 50% اعتبرها "ولا حاجة" وماتعرضهاش
-        // =====================================================================
-        const validResults = resultsArr.filter(result => result.confidence >= 50.0);
-
-        setResults(validResults.sort((a, b) => b.confidence - a.confidence));
         
-      } else {
-        setResults([])
+        const validResults = resultsArr.filter(result => result.confidence >= 50.0);
+        
+        setResults(validResults.sort((a, b) => b.confidence - a.confidence));
       }
-    } catch (e) {
-      console.error('Error reading predictionResult from sessionStorage', e)
-      setResults([])
-    } finally {
-      setLoading(false)
-    }
+    } catch (e) { console.error(e) } finally { setLoading(false) }
   }, [])
-
-  const toggleExpand = (id: string) => {
-    setExpandedId(expandedId === id ? null : id)
-  }
-
-  const handleViewDetails = (disease: Disease) => {
-    navigate(`/mutation-detail/${encodeURIComponent(disease.id)}`, { 
-      state: { diseaseData: disease } 
-    });
-  }
-
-  const downloadCSV = () => {
-    const csvHeader = ["Disease Name", "Pathogenicity", "Confidence (%)", "Description"];
-    const csvRows = results.map(r => [
-      `"${r.name}"`,
-      r.pathogenicity,
-      r.confidence.toFixed(2),
-      `"${r.description.replace(/"/g, '""')}"`
-    ]);
-
-    const csvContent = [csvHeader.join(","), ...csvRows.map(row => row.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "genome_analysis_results.csv"
-    a.click()
-  }
 
   if (loading) {
     return (
-      <div className="py-20 text-center text-white">
-        <Loader2 className="animate-spin w-10 h-10 mx-auto text-blue-500" />
-        <p className="mt-4 text-lg">Processing genome data...</p>
+      <div className="min-h-screen bg-white dark:bg-[#0f172a] flex flex-col items-center justify-center text-cyan-600 dark:text-cyan-400 transition-colors duration-300">
+        <Loader2 className="animate-spin w-12 h-12 mb-4" />
+        <p className="text-slate-700 dark:text-slate-300 font-mono tracking-widest animate-pulse">ANALYZING GENOME SEQUENCE...</p>
       </div>
     )
   }
 
   return (
-    <div className="py-8 px-4 max-w-4xl mx-auto text-white">
-      <h1 className="text-3xl font-bold mb-8 text-center border-b border-gray-700 pb-4">
-        Prediction Results
-      </h1>
-
-      {/* الحالة: القائمة فارغة (سواء كان سليم أو دخل ss) */}
-      {results.length === 0 ? (
-        <div className="text-center py-16 bg-gray-800 rounded-lg border border-gray-700 shadow-xl px-6">
-          <div className="inline-block p-4 rounded-full bg-gray-700/50 mb-6">
-            <CheckCircle className="w-16 h-16 text-green-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-3">No Diseases Detected</h2>
-          <p className="text-gray-300 text-lg mb-8 leading-relaxed max-w-lg mx-auto">
-            Patient appears healthy based on the provided genetic markers.
-            <br/><span className="text-sm text-gray-500 mt-2 block">(Invalid or unrecognized SNPs are ignored)</span>
-          </p>
-          <button 
-            onClick={() => navigate('/input')} 
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
-          >
-            Run New Analysis
-          </button>
+    
+    <div className="min-h-screen bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-200 py-12 px-6 transition-colors duration-300">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+            <Activity className="w-8 h-8 text-cyan-500" /> Analysis Report
+          </h1>
+           <div className="flex items-center gap-4">
+    <ThemeToggle />
+    <Link to="/input" className="flex items-center gap-2 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                <ArrowLeft className="w-4 h-4" /> Back to Analysis
+            </Link>
+  </div>
         </div>
-      ) : (
-        // الحالة: تم اكتشاف مرض بنسبة خطورة عالية (أكبر من 50%)
-        <div className="space-y-4">
-          {results.map((result) => (
-            <div
-              key={result.id}
-              className={`bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-all duration-200 border ${
-                result.pathogenicity === 'High' ? 'border-red-500/50' : 'border-gray-700'
-              }`}
-            >
-              <div 
-                className="p-5 cursor-pointer hover:bg-gray-750 flex justify-between items-center"
-                onClick={() => toggleExpand(result.id)}
-              >
-                <div>
-                  <h2 className="text-xl font-bold text-blue-100">{result.name}</h2>
-                  <div className="flex items-center gap-3 mt-1 text-sm">
-                    <span className={`px-2 py-0.5 rounded-full ${
-                      result.pathogenicity === 'High' ? 'bg-red-900 text-red-200' :
-                      result.pathogenicity === 'Medium' ? 'bg-yellow-900 text-yellow-200' :
-                      'bg-green-900 text-green-200'
-                    }`}>
-                      {result.pathogenicity} Risk
-                    </span>
-                    <span className="text-gray-400">
-                      Confidence: <span className="text-white font-mono">{result.confidence.toFixed(1)}%</span>
-                    </span>
-                  </div>
-                </div>
-                {expandedId === result.id ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
-              </div>
 
-              {expandedId === result.id && (
-                <div className="px-5 pb-5 pt-2 bg-gray-750/50 border-t border-gray-700">
-                  <p className="text-gray-300 mb-4 leading-relaxed">{result.description}</p>
-                  
-                  {result.mutations.length > 0 && (
-                    <div className="mb-4">
-                      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Key Mutations:</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {result.mutations.slice(0, 5).map((m, index) => (
-                          <span key={index} className="bg-gray-700 px-2 py-1 rounded text-xs font-mono text-blue-300">
-                            {m}
-                          </span>
-                        ))}
-                        {result.mutations.length > 5 && (
-                          <span className="text-xs text-gray-500 self-center">+{result.mutations.length - 5} more</span>
-                        )}
+        {results.length === 0 ? (
+          <div className="bg-slate-50 dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/20 rounded-2xl p-12 text-center shadow-[0_0_50px_-10px_rgba(16,185,129,0.1)] transition-colors duration-300">
+            <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">No Significant Genetic Risks</h2>
+            <p className="text-slate-700 dark:text-slate-400 max-w-lg mx-auto mb-8">
+              Based on the provided markers, no diseases exceeded the clinical risk threshold (50%).
+              <br/><span className="text-sm text-slate-600 dark:text-slate-600">(Unrecognized SNPs or low probability results are filtered out)</span>
+            </p>
+            <button onClick={() => navigate('/input')} className="px-6 py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-lg border border-slate-300 dark:border-slate-700 transition-colors">
+              Analyze New Sample
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {results.map((result) => (
+              <div key={result.id} className={`group bg-white dark:bg-slate-900 rounded-2xl border transition-all duration-300 ${
+                  result.pathogenicity === 'High' ? 'border-red-300 dark:border-red-500/30 hover:border-red-400 dark:hover:border-red-500/50 shadow-[0_0_30px_-10px_rgba(239,68,68,0.1)] dark:shadow-[0_0_30px_-10px_rgba(239,68,68,0.2)]' : 'border-yellow-300 dark:border-yellow-500/30 hover:border-yellow-400 dark:hover:border-yellow-500/50'
+                }`}>
+                
+                <div className="p-6 cursor-pointer" onClick={() => setExpandedId(expandedId === result.id ? null : result.id)}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{result.name}</h2>
+                      <div className="flex items-center gap-3">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                           result.pathogenicity === 'High' ? 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-500/20' : 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-500/20'
+                        }`}>
+                          {result.pathogenicity} Risk
+                        </span>
+                        {/* Visual Bar for Confidence */}
+                        <div className="flex items-center gap-2">
+                           <div className="w-24 h-2 bg-slate-300 dark:bg-slate-700 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${result.pathogenicity === 'High' ? 'bg-red-500' : 'bg-yellow-500'}`} style={{width: `${result.confidence}%`}}></div>
+                           </div>
+                           <span className="text-sm font-mono text-slate-700 dark:text-slate-300">{result.confidence.toFixed(1)}%</span>
+                        </div>
                       </div>
                     </div>
-                  )}
-
-                  <div className="flex gap-3 mt-6">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewDetails(result);
-                      }}
-                      className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex-1"
-                    >
-                      View Full Report <ArrowRight size={16} />
-                    </button>
+                    {expandedId === result.id ? <ChevronUp className="text-slate-500" /> : <ChevronDown className="text-slate-500" />}
                   </div>
+
+                  {expandedId === result.id && (
+                    <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
+                      <p className="text-slate-700 dark:text-slate-400 mb-6 leading-relaxed">{result.description}</p>
+                      
+                      {result.mutations.length > 0 && (
+                        <div className="mb-6">
+                          <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-500 uppercase tracking-widest mb-3">Detected Markers</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {result.mutations.slice(0, 5).map((m, i) => (
+                              <span key={i} className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-cyan-700 dark:text-cyan-300 transition-colors">
+                                {m}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <button onClick={(e) => { e.stopPropagation(); navigate(`/mutation-detail/${encodeURIComponent(result.id)}`, { state: { diseaseData: result } }); }}
+                        className="w-full flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 hover:border-cyan-500 dark:hover:border-cyan-500/50 text-slate-900 dark:text-white px-4 py-3 rounded-xl transition-all font-medium">
+                        View Clinical Report <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
-          
-          <button
-            onClick={downloadCSV}
-            className="mt-8 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-200 px-6 py-3 rounded-lg font-semibold w-full transition-colors flex items-center justify-center gap-2"
-          >
-            Download Results as CSV
-          </button>
-        </div>
-      )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,13 +1,12 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { ArrowLeft, Send, AlertCircle } from "lucide-react"
-import { Dna } from "lucide-react"
+import { ArrowLeft, Send, AlertCircle, Terminal, Dna, FileCode } from "lucide-react"
+import { ThemeToggle } from "../components/ThemeToggle"
 
-const exampleMutations = ["rs1333049", "rs2519203", "rs10811661", "rs1342326", "rs1837461"]
+const exampleMutations = ["rs7034200-A", "rs74577409-G", "rs150626020-T", "rs9967620-C", "rs6547692-A"]
 
 export default function InputPage() {
   const [mutations, setMutations] = useState("")
@@ -16,24 +15,12 @@ export default function InputPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!mutations.trim()) { setError("Please enter at least one mutation"); return }
 
-    if (!mutations.trim()) {
-      setError("Please enter at least one mutation")
-      return
-    }
+    const mutationList = mutations.split("\n").map((m) => m.trim()).filter((m) => m.length > 0)
+    if (mutationList.length === 0) { setError("Please enter valid mutations"); return }
 
-    const mutationList = mutations
-      .split("\n")
-      .map((m) => m.trim())
-      .filter((m) => m.length > 0)
-
-    if (mutationList.length === 0) {
-      setError("Please enter valid mutations")
-      return
-    }
-
-    setError("")
-    setLoading(true)
+    setError(""); setLoading(true)
 
     try {
       const response = await fetch("http://127.0.0.1:5000/api/predict/list", {
@@ -43,140 +30,108 @@ export default function InputPage() {
       })
 
       const data = await response.json()
+      if (!response.ok) { throw new Error(data.error || "Prediction failed") }
 
-      if (!response.ok) {
-        setError(data.error || "Prediction failed")
-        setLoading(false)
-        return
-      }
-
-      // store the API response and navigate to results page
       sessionStorage.setItem('predictionResult', JSON.stringify(data))
       window.location.href = '/results'
-    } catch (err) {
-      console.error('API error:', err)
-      setError('Failed to contact prediction server. Is the backend running on http://127.0.0.1:5000 ?')
+    } catch (err: any) {
+      setError(err.message || 'Connection failed. Is the backend running?')
+    } finally {
       setLoading(false)
     }
-
-  }
-
-  const addExampleMutations = () => {
-    setMutations(exampleMutations.join("\n"))
-    setError("")
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <Dna className="w-6 h-6 text-primary-foreground" />
+    <main className="min-h-screen bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-200 transition-colors duration-300">
+      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a]/95 backdrop-blur sticky top-0 z-50 transition-colors duration-300">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                    <Dna className="w-5 h-5 text-white" />
+                </div>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Genome Input</h1>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Mutation Analyzer</h1>
-          </div>
-          <Link to="/" className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-            Back
-          </Link>
+            <div className="flex items-center gap-4">
+                <Link to="/" className="text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-2 text-sm">
+                    <ArrowLeft className="w-4 h-4" /> Back
+                </Link>
+                <ThemeToggle />
+            </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-card rounded-xl border border-border shadow-sm p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Title and Description */}
-            <div className="space-y-2 pb-6 border-b border-border">
-              <label htmlFor="mutations" className="block text-lg font-semibold text-foreground">
-                Enter Your Genetic Mutation(s)
-              </label>
-              <p className="text-muted-foreground">
-                Input mutations in rsID (e.g., rs1333049) or HGVS format (e.g., NM_007300.4:c.1687C&gt;T). One per line.
-              </p>
+      <div className="max-w-5xl mx-auto px-6 py-12">
+        <div className="grid lg:grid-cols-3 gap-8">
+            {/* Input Column */}
+            <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-lg dark:shadow-2xl transition-colors duration-300">
+                    <div className="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center gap-2">
+                        <Terminal className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                        <span className="text-xs font-mono text-slate-600 dark:text-slate-400">mutations_input.txt</span>
+                    </div>
+                    
+                    <form onSubmit={handleSubmit} className="p-1">
+                        <textarea
+                            value={mutations}
+                            onChange={(e) => { setMutations(e.target.value); setError("") }}
+                            placeholder="// Enter SNPs (one per line)&#10;rs1333049-A&#10;rs2519203-T"
+                            className="w-full h-80 bg-slate-50 dark:bg-[#0b1120] text-cyan-700 dark:text-cyan-300 font-mono text-sm p-4 focus:outline-none resize-none placeholder-slate-400 dark:placeholder-slate-600"
+                        />
+                        
+                        <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center transition-colors duration-300">
+                            <span className="text-xs text-slate-600 dark:text-slate-500">
+                                {mutations.split('\n').filter(x => x.trim()).length} SNPs detected
+                            </span>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg font-medium text-sm transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
+                            >
+                                {loading ? <span className="animate-spin">⏳</span> : <Send className="w-4 h-4" />}
+                                {loading ? "Processing DNA..." : "Analyze Genome"}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                {error && (
+                    <div className="bg-red-100 dark:bg-red-500/10 border border-red-300 dark:border-red-500/20 text-red-700 dark:text-red-400 p-4 rounded-xl flex items-center gap-3 text-sm transition-colors duration-300">
+                        <AlertCircle className="w-5 h-5" /> {error}
+                    </div>
+                )}
             </div>
 
-            {/* Textarea */}
-            <div className="space-y-2">
-              <textarea
-                id="mutations"
-                value={mutations}
-                onChange={(e) => {
-                  setMutations(e.target.value)
-                  setError("")
-                }}
-                placeholder="e.g., rs1333049&#10;rs2519203&#10;rs10811661"
-                className="w-full h-48 px-4 py-3 bg-background border-2 border-border rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none text-foreground placeholder-muted-foreground"
-              />
+            {/* Sidebar Column */}
+            <div className="space-y-6">
+                <div className="bg-slate-100 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700/50 p-6 transition-colors duration-300">
+                    <div className="flex items-center gap-2 mb-4 text-slate-900 dark:text-white font-medium">
+                        <FileCode className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        <span>Quick Load</span>
+                    </div>
+                    <p className="text-sm text-slate-700 dark:text-slate-400 mb-4">Click to load sample data for testing:</p>
+                    <div className="flex flex-wrap gap-2">
+                        {exampleMutations.map((m) => (
+                            <button
+                                key={m}
+                                onClick={() => { setMutations(prev => prev ? prev + "\n" + m : m); setError("") }}
+                                className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:border-cyan-500 hover:text-cyan-600 dark:hover:text-cyan-400 text-slate-700 dark:text-slate-300 text-xs font-mono rounded-md transition-all"
+                            >
+                                + {m}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-200 dark:border-blue-500/10 p-6 transition-colors duration-300">
+                    <h3 className="text-blue-600 dark:text-blue-400 font-semibold mb-2 text-sm">Supported Formats</h3>
+                    <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-400">
+                        <li className="flex gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 mt-1.5"></span>
+                            <span><strong>rsID:</strong> The most common format (e.g., <code className="text-cyan-600 dark:text-cyan-300">rs1333049-G</code>)</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="flex items-start gap-3 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                <p className="text-destructive font-medium">{error}</p>
-              </div>
-            )}
-
-            {/* Example Mutations */}
-            <div className="bg-muted/30 rounded-lg p-4 border border-border">
-              <p className="text-sm font-medium text-foreground mb-3">Example Mutations:</p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {exampleMutations.map((mutation) => (
-                  <span
-                    key={mutation}
-                    className="px-3 py-1 bg-background border border-border rounded-full text-sm text-foreground"
-                  >
-                    {mutation}
-                  </span>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={addExampleMutations}
-                className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
-              >
-                Load Examples
-              </button>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full px-6 py-4 bg-primary hover:bg-opacity-90 disabled:opacity-60 text-primary-foreground rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5" />
-                  Predict Disease
-                </>
-              )}
-            </button>
-          </form>
-        </div>
-
-        {/* Info Section */}
-        <div className="mt-8 grid md:grid-cols-2 gap-6">
-          <div className="bg-card rounded-lg border border-border p-6">
-            <h3 className="font-semibold text-foreground mb-2">rsID Format</h3>
-            <p className="text-sm text-muted-foreground">
-              Reference SNP identifiers like rs1333049, typically found in databases.
-            </p>
-          </div>
-          <div className="bg-card rounded-lg border border-border p-6">
-            <h3 className="font-semibold text-foreground mb-2">HGVS Format</h3>
-            <p className="text-sm text-muted-foreground">
-              Human Genome Variation Society notation like NM_007300.4:c.1687C&gt;T.
-            </p>
-          </div>
         </div>
       </div>
     </main>

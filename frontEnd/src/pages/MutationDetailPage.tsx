@@ -1,258 +1,149 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, ExternalLink, Dna, Info } from "lucide-react"
+import { Link, useLocation, useParams } from "react-router-dom"
+import { ArrowLeft, ExternalLink, Dna, Info, Share2, Printer } from "lucide-react"
+import { ThemeToggle } from "../components/ThemeToggle"
 
 interface MutationDetail {
-  id: string
-  diseaseName: string
-  mutations: {
-    name: string
-    rsId: string
-    gene: string
-    chromosome: string
-    position: string
-    pathogenicity: string
-    alleleFreq: string
-    description: string
-  }[]
-  clinicalSignificance: string
-  inheritance: string
-  references: {
-    title: string
-    pmid: string
-    url: string
-  }[]
-  externalLinks: {
-    name: string
-    url: string
-  }[]
-}
-
-// بيانات فارغة تماماً للاحتياط
-const emptyMutationData: MutationDetail = {
-  id: "unknown",
-  diseaseName: "Unknown Condition",
-  mutations: [],
-  clinicalSignificance: "No data available.",
-  inheritance: "Unknown",
-  references: [],
-  externalLinks: []
+  id: string; diseaseName: string; mutations: { name: string; rsId: string; gene: string; chromosome: string; pathogenicity: string; }[];
+  clinicalSignificance: string; references: { title: string; url: string; }[]; externalLinks: { name: string; url: string; }[]
 }
 
 export default function MutationDetailPage() {
-  const { id } = useParams()
-  const location = useLocation()
-  
-  const [data, setData] = useState<MutationDetail | null>(null)
+  const { id } = useParams(); const location = useLocation(); const [data, setData] = useState<MutationDetail | null>(null);
 
   useEffect(() => {
-    // التحقق مما إذا كانت البيانات قادمة من صفحة النتائج
     if (location.state?.diseaseData) {
       const passedData = location.state.diseaseData;
+      const directMutations = passedData.mutations.map((mutString: string) => ({
+        name: mutString, rsId: mutString, gene: "-", chromosome: "-", pathogenicity: passedData.pathogenicity
+      }));
       
-      // تعبئة البيانات مباشرة من الموديل فقط دون إضافة بيانات خارجية
-      const directMutations = passedData.mutations.map((mutString: string) => {
-        return {
-          name: mutString,        // اسم الطفرة كما جاء من الموديل
-          rsId: mutString,        // نستخدم نفس الاسم كـ ID
-          gene: "-",              // الموديل لا يرسل الجين
-          chromosome: "-",        // الموديل لا يرسل الكروموسوم
-          position: "-",          // الموديل لا يرسل الموقع
-          pathogenicity: passedData.pathogenicity, // نأخذ خطورة المرض نفسه
-          alleleFreq: "-",        // غير متوفر من الموديل
-          description: "-"        // غير متوفر من الموديل
-        };
+      setData({
+        id: passedData.id, diseaseName: passedData.name, mutations: directMutations,
+        clinicalSignificance: passedData.description || "No description provided.",
+        references: passedData.references?.map((ref: string) => ({ title: ref, url: `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(ref)}` })) || [],
+        externalLinks: [{ name: "ClinVar", url: "https://www.ncbi.nlm.nih.gov/clinvar/" }]
       });
-
-      const formattedData: MutationDetail = {
-        id: passedData.id,
-        diseaseName: passedData.name,
-        mutations: directMutations,
-        clinicalSignificance: passedData.description || "No description provided by model.",
-        inheritance: "See clinical references", 
-        // عرض المراجع فقط إذا أرسلها الموديل
-        references: passedData.references && Array.isArray(passedData.references)
-          ? passedData.references.map((ref: string, idx: number) => ({
-              title: ref,
-              pmid: `-`,
-              url: `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(ref)}` // رابط بحث بسيط
-            }))
-          : [],
-        externalLinks: [
-          // روابط بحث عامة فقط باستخدام اسم المرض القادم من الموديل
-          { name: `Search Google for ${passedData.name}`, url: `https://www.google.com/search?q=${passedData.name}` },
-          { name: "ClinVar Search", url: "https://www.ncbi.nlm.nih.gov/clinvar/" }
-        ]
-      };
-      
-      setData(formattedData);
-    } 
-    else {
-      setData(emptyMutationData);
     }
   }, [id, location.state]);
 
-  if (!data) {
-    return (
-        <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">
-            <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                Loading...
-            </div>
-        </div>
-    )
-  }
-
-  if (data.id === "unknown") {
-      return (
-        <main className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4">
-            <Info className="w-16 h-16 text-yellow-500 mb-4" />
-            <h1 className="text-2xl font-bold mb-2">No Data Found</h1>
-            <p className="text-gray-400 mb-6 text-center max-w-md">
-                Please perform a new analysis to view detailed results.
-            </p>
-            <Link to="/input" className="bg-blue-600 px-6 py-2 rounded-lg hover:bg-blue-700 transition">
-                Start Analysis
-            </Link>
-        </main>
-      )
-  }
+  if (!data) return <div className="min-h-screen bg-white dark:bg-[#0f172a] flex items-center justify-center text-cyan-600 dark:text-cyan-400 transition-colors duration-300">Loading Report...</div>;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      {/* Header */}
-      <header className="border-b border-gray-700 bg-gray-800/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center border border-blue-500/30">
-              <Dna className="w-6 h-6 text-blue-400" />
+    <main className="min-h-screen bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-200 transition-colors duration-300">
+      {/* Top Navigation */}
+      <div className="bg-white dark:bg-[#0f172a]/80 backdrop-blur border-b border-slate-200 dark:border-slate-800 sticky top-0 z-20 transition-colors duration-300">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <Link to="/results" className="flex items-center gap-2 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                <ArrowLeft className="w-4 h-4" /> Back to Analysis
+            </Link>
+            <div className="flex gap-3 items-center">
+                <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-400 transition-colors"><Printer className="w-5 h-5"/></button>
+                <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-400 transition-colors"><Share2 className="w-5 h-5"/></button>
+                <ThemeToggle />
+            </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-6 py-10">
+        {/* Header Block */}
+        <div className="flex items-start gap-6 mb-12">
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl ${
+                data.mutations[0]?.pathogenicity === 'High' ? 'bg-red-500/20 dark:bg-red-500/20 text-red-600 dark:text-red-400 shadow-red-900/20' : 'bg-yellow-500/20 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+            }`}>
+                <Dna className="w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Mutation Report</h1>
-              <p className="text-sm text-blue-300 font-medium">{data.diseaseName}</p>
-            </div>
-          </div>
-          
-          <Link
-            to="/results"
-            className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700/50 hover:bg-gray-700 transition-all text-sm font-medium text-gray-200"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Back to Results
-          </Link>
-        </div>
-      </header>
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
-        {/* Overview Cards */}
-        <div className="grid md:grid-cols-3 gap-4">
-            <div className="bg-gray-800/60 border border-gray-700 p-6 rounded-xl">
-                <p className="text-sm text-gray-400 uppercase tracking-wider font-semibold mb-2">Risk Level</p>
-                <div className={`text-2xl font-bold ${
-                    data.mutations[0]?.pathogenicity === 'High' ? 'text-red-400' : 'text-yellow-400'
-                }`}>
-                    {data.mutations[0]?.pathogenicity || 'Unknown'}
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">{data.diseaseName}</h1>
+                <div className="flex gap-3">
+                    <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-400 font-mono transition-colors">
+                        ID: {data.id}
+                    </span>
+                    <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-400 transition-colors">
+                        Autosomal Pattern
+                    </span>
                 </div>
             </div>
-            <div className="bg-gray-800/60 border border-gray-700 p-6 rounded-xl md:col-span-2">
-                <p className="text-sm text-gray-400 uppercase tracking-wider font-semibold mb-2">Model Description</p>
-                <p className="text-gray-200 leading-relaxed">{data.clinicalSignificance}</p>
-            </div>
         </div>
 
-        {/* Mutations Table */}
-        <div className="space-y-4">
-          <h3 className="text-xl font-bold text-white flex items-center gap-2">
-            <span className="w-2 h-8 bg-blue-500 rounded-full"></span>
-            Identified Genetic Variants (Model Output)
-          </h3>
-          
-          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-900/50 border-b border-gray-700">
-                  <tr>
-                    <th className="px-6 py-4 font-semibold text-gray-300">Variant ID</th>
-                    {/* تم الإبقاء على الأعمدة لكن البيانات ستكون فارغة لعدم توفرها من الموديل */}
-                    <th className="px-6 py-4 font-semibold text-gray-300">Gene</th>
-                    <th className="px-6 py-4 font-semibold text-gray-300">Locus</th>
-                    <th className="px-6 py-4 font-semibold text-gray-300">Risk Level</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-700">
-                  {data.mutations.map((mut, i) => (
-                    <tr key={i} className="hover:bg-gray-700/30 transition-colors group">
-                      <td className="px-6 py-4">
-                          <div className="font-mono text-blue-400 font-bold">{mut.name}</div>
-                      </td>
-                      <td className="px-6 py-4 text-gray-500">
-                          {mut.gene}
-                      </td>
-                      <td className="px-6 py-4 text-gray-500 font-mono">
-                        {mut.chromosome}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            mut.pathogenicity === 'High' ? 'bg-red-900/30 text-red-400 border border-red-900/50' : 
-                            mut.pathogenicity === 'Medium' ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-900/50' : 
-                            'bg-green-900/30 text-green-400 border border-green-900/50'
-                        }`}>
-                          {mut.pathogenicity}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* References & Links (Only if model provided them) */}
-        <div className="grid md:grid-cols-2 gap-8">
-            {data.references.length > 0 && (
-                <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                        <Info className="w-5 h-5 text-gray-400"/>
-                        Model References
+        <div className="grid lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-8">
+                {/* Clinical Context */}
+                <section className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 transition-colors duration-300">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                        <Info className="w-5 h-5 text-cyan-600 dark:text-cyan-500" /> Clinical Significance
                     </h3>
+                    <p className="text-slate-700 dark:text-slate-400 leading-relaxed text-lg">
+                        {data.clinicalSignificance}
+                    </p>
+                </section>
+
+                {/* Variants List */}
+                <section>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Identified Variants</h3>
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden transition-colors duration-300">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                                <tr>
+                                    <th className="px-6 py-4 font-medium">Variant ID</th>
+                                    <th className="px-6 py-4 font-medium">Status</th>
+                                    <th className="px-6 py-4 font-medium">Database</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                                {data.mutations.map((mut, i) => (
+                                    <tr key={i} className="hover:bg-slate-100 dark:hover:bg-slate-800/30 transition-colors">
+                                        <td className="px-6 py-4 font-mono text-cyan-700 dark:text-cyan-300 font-medium">{mut.name}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+                                                mut.pathogenicity === 'High' ? 'bg-red-950 text-red-400 border border-red-900' : 'bg-yellow-950 text-yellow-400 border border-yellow-900'
+                                            }`}>
+                                                {mut.pathogenicity} Impact
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <a href={`https://www.ncbi.nlm.nih.gov/snp/${mut.rsId}`} target="_blank" className="text-blue-400 hover:underline flex items-center gap-1">
+                                                NCBI <ExternalLink className="w-3 h-3"/>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            {/* Sidebar */}
+            <aside className="space-y-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                    <h3 className="font-semibold text-white mb-4">References</h3>
                     <ul className="space-y-3">
-                        {data.references.map((ref, i) => (
-                        <li key={i} className="flex items-start gap-3 text-sm">
-                            <span className="text-gray-500 mt-1">[{i+1}]</span>
-                            <a href={ref.url} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 hover:underline">
-                                {ref.title}
-                            </a>
-                        </li>
-                        ))}
+                        {data.references.length > 0 ? data.references.map((ref, i) => (
+                            <li key={i} className="text-sm">
+                                <a href={ref.url} target="_blank" className="text-slate-400 hover:text-cyan-400 transition-colors flex gap-2">
+                                    <span className="text-slate-600 font-mono">{i+1}.</span>
+                                    {ref.title}
+                                </a>
+                            </li>
+                        )) : <li className="text-slate-500 text-sm">No direct references provided.</li>}
                     </ul>
                 </div>
-            )}
 
-            <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-                <h3 className="text-lg font-bold text-white mb-4">External Resources</h3>
-                <div className="grid gap-3">
-                    {data.externalLinks.map((link, i) => (
-                    <a
-                        key={i}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between p-4 bg-gray-700/30 hover:bg-gray-700 rounded-lg transition-all group border border-transparent hover:border-blue-500/30"
-                    >
-                        <span className="text-gray-200 font-medium group-hover:text-white transition-colors">
-                        {link.name}
-                        </span>
-                        <ExternalLink className="w-5 h-5 text-gray-500 group-hover:text-blue-400 transition-colors" />
-                    </a>
-                    ))}
+                <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/20 border border-cyan-500/20 rounded-2xl p-6">
+                    <h3 className="font-semibold text-cyan-100 mb-2">Need Consultation?</h3>
+                    <p className="text-sm text-slate-400 mb-4">
+                        This AI-generated report is for research use only. Consult a genetic counselor for clinical advice.
+                    </p>
+                    <button className="w-full py-2 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/50 rounded-lg text-sm transition-colors">
+                        Find a Counselor
+                    </button>
                 </div>
-            </div>
+            </aside>
         </div>
-
       </div>
     </main>
   )

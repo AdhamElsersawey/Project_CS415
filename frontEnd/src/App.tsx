@@ -1,11 +1,10 @@
-import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom"
 
-// تأكد من صحة مسارات الاستيراد هذه بناءً على هيكل مشروعك
-import HomePage from "./pages/HomePage";
-import InputPage from "./pages/InputPage";
-import ResultsPage from "./pages/ResultsPage";
-import MutationDetailPage from "./pages/MutationDetailPage";
+import HomePage from "./pages/HomePage"
+import InputPage from "./pages/InputPage"
+import ResultsPage from "./pages/ResultsPage"
+import MutationDetailPage from "./pages/MutationDetailPage"
+import DNAEducation from "./pages/DNAEducation"
 
 export default function App() {
   return (
@@ -14,9 +13,9 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/input" element={<InputPage />} />
         <Route path="/results" element={<ResultsPage />} />
-        {/* هذا هو المسار الديناميكي الذي سنقوم بربطه الآن */}
         <Route path="/mutation-detail/:id" element={<MutationDetailPage />} />
+        <Route path="/dna-education" element={<DNAEducation />} />
       </Routes>
     </BrowserRouter>
-  );
+  )
 }
