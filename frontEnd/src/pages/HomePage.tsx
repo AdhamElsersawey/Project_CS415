@@ -1,111 +1,90 @@
+"use client"
+
 import { Link } from "react-router-dom"
-import { ArrowRight, Microscope, Dna, Database, Activity, ShieldCheck } from "lucide-react"
+import { ArrowRight, Dna, Database, Activity, ShieldCheck, Microscope } from "lucide-react"
 import { ThemeToggle } from "../components/ThemeToggle"
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#071025] dark:via-[#071025] dark:to-slate-900 text-slate-900 dark:text-slate-200 overflow-hidden relative selection:bg-cyan-500/30 transition-colors duration-300">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0f172a] dark:via-[#0f172a] dark:to-slate-900 text-slate-900 dark:text-slate-200 overflow-hidden relative selection:bg-cyan-500/30 transition-colors duration-300">
+      
+      {/* Background Elements (Decorative DNA blobs) */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-cyan-500/10 dark:bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/10 dark:bg-blue-600/10 rounded-full blur-3xl"></div>
+      </div>
+
       {/* Header */}
-      <header className="w-full border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#071025]/70 sticky top-0 z-40">
+      <header className="border-b border-slate-200 dark:border-slate-800/60 sticky top-0 z-50 bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-md transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-md">
-              <Dna className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+              <Dna className="w-6 h-6 text-white" />
             </div>
-            <div>
-              <div className="text-lg font-bold text-slate-900 dark:text-white">GenePredictor</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">AI-driven SNP risk analysis</div>
-            </div>
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-600 dark:from-white to-blue-600 dark:to-slate-400">
+              GenePredictor
+            </span>
           </div>
           <div className="flex items-center gap-6">
-            <nav className="hidden md:flex gap-6">
-              <Link to="/" className="text-sm text-slate-700 dark:text-slate-200 hover:underline">Home</Link>
-              <Link to="/input" className="text-sm text-slate-600 dark:text-slate-300">Analyze</Link>
-              <Link to="/dna-education" className="text-sm text-slate-600 dark:text-slate-300">DNA 3D</Link>
+            <nav className="hidden md:flex gap-8">
+              <Link to="/" className="text-sm font-medium text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors">Home</Link>
+              <Link to="/input" className="text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">Analyze</Link>
             </nav>
             <ThemeToggle />
           </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative z-10 flex items-center justify-center px-4 py-20 lg:py-28">
-        <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div className="space-y-6 text-center lg:text-left">
-            <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight">Decode your genetic future with fast, local SNP analysis</h1>
-            <p className="text-lg text-slate-600 dark:text-slate-300 max-w-xl mx-auto lg:mx-0">Upload or paste rsIDs and get a model-backed risk summary for common diseases. Private, offline, and research-grade.</p>
-
-            <div className="flex flex-col sm:flex-row gap-4 mt-6 justify-center lg:justify-start">
-              <Link to="/input" className="inline-flex items-center gap-3 px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-semibold shadow-md transition-all">
-                Start Analysis
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-              <Link to="/dna-education" className="inline-flex items-center gap-3 px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl font-semibold transition-all">
-                Explore DNA 3D
-                <Microscope className="w-5 h-5" />
-              </Link>
-            </div>
+      {/* Hero Section */}
+      <div className="relative z-10 flex flex-col items-center justify-center px-4 py-20 lg:py-32">
+        <div className="max-w-4xl text-center space-y-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-200 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 text-sm text-cyan-600 dark:text-cyan-400 mb-4">
+            <Microscope className="w-4 h-4" />
+            <span>AI-Powered Genomic Analysis</span>
           </div>
+          
+          <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Decode Your <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 via-blue-500 to-purple-600 dark:from-cyan-400 dark:via-blue-500 dark:to-purple-500">Genetic Future</span>
+          </h1>
+          
+          <p className="text-lg text-slate-700 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            Leverage advanced machine learning algorithms to predict disease risks from specific genetic markers (SNPs). 
+            Fast, secure, and research-focused.
+          </p>
 
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-md">
-            <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">Quick Actions</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Link to="/input" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                <div className="p-2 rounded-md bg-cyan-50 dark:bg-cyan-900/20"><Database className="w-5 h-5 text-cyan-600" /></div>
-                <div>
-                  <div className="font-semibold">Analyze SNPs</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Paste rsIDs or upload file</div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+            <Link
+              to="/input"
+              className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-cyan-600 hover:bg-cyan-500 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white rounded-xl font-semibold transition-all hover:shadow-[0_0_20px_-5px_rgba(6,182,212,0.5)]"
+            >
+              Start Genome Analysis
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Features Grid */}
+      <section className="bg-slate-100 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800 py-24 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { icon: <Database className="w-6 h-6 text-purple-400" />, title: "Input Mutations", desc: "Support for rsID (rs1333049) and HGVS formats." },
+              { icon: <Activity className="w-6 h-6 text-cyan-400" />, title: "Risk Prediction", desc: "AI models trained on thousands of clinical datasets." },
+              { icon: <ShieldCheck className="w-6 h-6 text-emerald-400" />, title: "Secure & Private", desc: "Your genetic data is processed locally in session." },
+            ].map((feature, idx) => (
+              <div key={idx} className="bg-white dark:bg-slate-800/30 p-8 rounded-2xl border border-slate-200 dark:border-slate-700/50 hover:border-cyan-400 dark:hover:border-cyan-500/30 transition-colors">
+                <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 flex items-center justify-center mb-6">
+                  {feature.icon}
                 </div>
-              </Link>
-              <Link to="/results" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                <div className="p-2 rounded-md bg-yellow-50 dark:bg-yellow-900/10"><Activity className="w-5 h-5 text-yellow-600" /></div>
-                <div>
-                  <div className="font-semibold">View Example Results</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">See sample analysis reports</div>
-                </div>
-              </Link>
-              <Link to="/dna-education" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                <div className="p-2 rounded-md bg-purple-50 dark:bg-purple-900/10"><Microscope className="w-5 h-5 text-purple-600" /></div>
-                <div>
-                  <div className="font-semibold">3D DNA Viewer</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Interactive helix visualization</div>
-                </div>
-              </Link>
-              <Link to="/" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                <div className="p-2 rounded-md bg-emerald-50 dark:bg-emerald-900/10"><ShieldCheck className="w-5 h-5 text-emerald-600" /></div>
-                <div>
-                  <div className="font-semibold">Privacy First</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">All analysis runs locally</div>
-                </div>
-              </Link>
-            </div>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">{feature.title}</h3>
+                <p className="text-slate-700 dark:text-slate-400 leading-relaxed">{feature.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
-
-      {/* Features section */}
-      <section className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center shadow-sm">
-            <div className="mx-auto w-12 h-12 rounded-lg bg-cyan-50 dark:bg-cyan-900/10 flex items-center justify-center mb-4"><Database className="w-6 h-6 text-cyan-600" /></div>
-            <h4 className="font-semibold">Flexible Input</h4>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Support rsID lists and common variant formats.</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center shadow-sm">
-            <div className="mx-auto w-12 h-12 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 flex items-center justify-center mb-4"><Activity className="w-6 h-6 text-yellow-600" /></div>
-            <h4 className="font-semibold">Accurate Models</h4>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Pretrained models provide probabilistic risk estimates.</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center shadow-sm">
-            <div className="mx-auto w-12 h-12 rounded-lg bg-purple-50 dark:bg-purple-900/10 flex items-center justify-center mb-4"><Dna className="w-6 h-6 text-purple-600" /></div>
-            <h4 className="font-semibold">Interactive Visuals</h4>
-            <p className="text-sm text-slate-600 dark:text-slate-400">3D helix viewer and detailed mutation reports.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer spacer */}
-      <div className="h-20" />
     </main>
   )
 }
