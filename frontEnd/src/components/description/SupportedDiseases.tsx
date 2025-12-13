@@ -13,26 +13,26 @@ const diseases = [
 
 export default function SupportedDiseases() {
     return (
-        <section className="py-20 bg-slate-50">
+        <section className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
             <div className="container mx-auto px-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                     <div>
-                        <h2 className="text-3xl font-bold text-slate-900 mb-6">Supported Conditions</h2>
-                        <p className="text-slate-600 mb-8 leading-relaxed">
+                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-6">Supported Conditions</h2>
+                        <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
                             Our AI model is currently optimized to detect mutations associated with a wide range of monogenic disorders. We continuously update our database to expand coverage.
                         </p>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {diseases.map((disease, index) => (
-                                <div key={index} className="flex items-center gap-3 bg-white p-4 rounded-lg shadow-sm border border-slate-100">
-                                    <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-                                    <span className="text-sm font-medium text-slate-700">{disease}</span>
+                                <div key={index} className="flex items-center gap-3 bg-white dark:bg-slate-900 p-4 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700">
+                                    <CheckCircle2 className="w-5 h-5 text-green-500 dark:text-green-400 flex-shrink-0" />
+                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{disease}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    <div className="relative h bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl p-8 text-white shadow-2xl overflow-hidden">
+                    <div className="relative h bg-gradient-to-br from-blue-600 to-purple-700 dark:from-blue-700 dark:to-purple-800 rounded-2xl p-8 text-white shadow-2xl overflow-hidden">
                         <div className="relative z-10">
                             <h3 className="text-2xl font-bold mb-4">Medical Disclaimer</h3>
                             <p className="opacity-90 leading-relaxed mb-6">

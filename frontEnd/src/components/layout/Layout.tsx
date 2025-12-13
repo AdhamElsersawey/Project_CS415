@@ -9,7 +9,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
     return (
-        <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
+        <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 dark:text-slate-200 font-sans transition-colors duration-300">
             <Navbar />
             <main className="flex-grow pt-20">
                 <motion.div

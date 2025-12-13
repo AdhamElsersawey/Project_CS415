@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom"
 import Home from "./pages/Home"
 import Description from "./pages/Description"
 import About from "./pages/About"
-import Diagnose from "./pages/Diagnose"
+import InputPage from "./pages/InputPage"
+import ResultsPage from "./pages/ResultsPage"
+import DNAEducation from "./pages/DNAEducation"
 
 export default function App() {
   return (
@@ -11,7 +13,10 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/description" element={<Description />} />
         <Route path="/about" element={<About />} />
-        <Route path="/diagnose" element={<Diagnose />} />
+        <Route path="/education" element={<DNAEducation />} />
+        <Route path="/diagnose" element={<InputPage />} />
+        <Route path="/input" element={<InputPage />} />
+        <Route path="/results" element={<ResultsPage />} />
       </Routes>
     </BrowserRouter>
   )

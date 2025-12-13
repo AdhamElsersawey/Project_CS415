@@ -214,15 +214,34 @@ def predict_from_binary():
 @app.route('/api/examples/snps', methods=['GET'])
 def example_snps():
     """Get example SNPs for each disease"""
+    # Return actual features from the model instead of hardcoded ones
+    # Group them artificially or just return a list of valid SNPs
+    if not feature_columns:
+        return jsonify({})
+    
+    # helper to get random snippets
+    import random
+    
+    # Create synthetic groups for demo purposes using actual feature names
+    # In a real scenario, we'd map features to diseases they affect.
+    # Here we just grab some features to let user test valid inputs.
+    
+    total_features = len(feature_columns)
     examples = {
-        'Type 2 diabetes': ['rs6947395-T', 'rs7310615-C', 'rs4506565-T'],
-        'Glaucoma (primary open-angle)': ['rs327636-A', 'rs11004733-C', 'rs10757272-C'],
-        'Non-glioblastoma glioma': ['rs10069690-T', 'rs17752199-A', 'rs2252586-T'],
-        'Endometriosis': ['rs77294520-C', 'rs12076373-G', 'rs1519761-G'],
-        'Suicide attempts in major depressive disorder or bipolar disorder or schizophrenia': [
-            'chr4_23273116-I-?', 'rs75633108-C', 'rs138689899-C'
-        ]
+        'Random Set A': feature_columns[:5],
+        'Random Set B': feature_columns[5:10] if total_features > 10 else feature_columns[:5],
+        'Random Set C': feature_columns[10:15] if total_features > 15 else feature_columns[:5],
     }
+    
+    # If we have enough features, try to give more substantial examples
+    if total_features > 50:
+         examples = {
+            'Sample Group 1': feature_columns[0:10],
+            'Sample Group 2': feature_columns[10:20],
+            'Sample Group 3': feature_columns[20:30],
+            'Sample Group 4': feature_columns[30:40],
+            'Sample Group 5': feature_columns[40:50],
+         }
 
     return jsonify(examples)
 
